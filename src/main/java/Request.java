@@ -31,9 +31,9 @@ public class Request {
         return parameter;
     }
 
+    private List<NameValuePair> params;
     private static final String GET = "GET";
     private static final String POST = "POST";
-    private List<NameValuePair> params;
 
     public Request(String method, String path) {
         this.method = method;
