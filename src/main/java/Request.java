@@ -12,6 +12,9 @@ import java.util.Arrays;
 import java.util.List;
 
 public class Request {
+    private final String method;
+    private final String path;
+    private final List<String> headers;
 
     public static MultiMap getQueryParams(String url) {
         MultiMap parameter = new MultiValueMap();
@@ -68,4 +71,46 @@ public class Request {
         return -1;
     }
 
+    static Request createRequest(BufferedInputStream in) throws IOException, URISyntaxException {
+        final List<String> allowedMethods = List.of(GET, POST);
+        final var limit = 4096;
+        in.mark(limit);
+        final var buffer = new byte[limit];
+        final var read = in.read(buffer);
+
+        final var requestLineDelimiter = new byte[]{'\r', '\n'};
+        final var requestLineEnd = indexOf(buffer, requestLineDelimiter, 0, read);
+        if (requestLineEnd == -1) {
+            return null;
+        }
+
+        final var requestLine = new String(Arrays.copyOf(buffer, requestLineEnd)).split(" ");
+        if (requestLine.length != 3) {
+            return null;
+        }
+
+        final var method = requestLine[0];
+        if (!allowedMethods.contains(method)) {
+            return null;
+        }
+
+        final var path = requestLine[1];
+
+        final var headerDelimiter = new byte[]{'\r', '\n', '\r', '\n'};
+        final var headersStart = requestLineEnd + requestLineDelimiter.length;
+        final var headersEnd = indexOf(buffer, headerDelimiter, headersStart, read);
+        if (headersEnd == -1) {
+            return null;
+        }
+
+        in.reset();
+        in.skip(headersStart);
+
+        final var headersBytes = in.readNBytes(headersEnd - headersStart);
+        List<String> headers = Arrays.asList(new String(headersBytes).split("\r\n"));
+
+        List<NameValuePair> params = URLEncodedUtils.parse(new URI(path), StandardCharsets.UTF_8);
+
+        return new Request(method, path, headers, params);
+    }
 }
