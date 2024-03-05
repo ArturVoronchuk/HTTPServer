@@ -1,5 +1,3 @@
-import org.apache.commons.collections.MultiMap;
-import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 
@@ -16,19 +14,8 @@ public class Request {
     private final String path;
     private final List<String> headers;
 
-    public static MultiMap getQueryParams(String url) {
-        MultiMap parameter = new MultiValueMap();
-        List<NameValuePair> params;
-        try {
-            params = URLEncodedUtils.parse(new URI(url), "UTF-8");
-            for (NameValuePair param : params) {
-                if (param.getName() != null && param.getValue() != null)
-                    parameter.put(param.getName(), param.getValue());
-            }
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-        return parameter;
+    public List<NameValuePair> getQueryParams() {
+        return params;
     }
 
     private static final String GET = "GET";
@@ -48,14 +35,20 @@ public class Request {
         this.params = params;
     }
 
-    public static String getQueryParamsPath(String url) {
-        String result;
-        int i = url.indexOf("?");
-        if (i == -1) {
-            return url;
-        }
-        result = url.substring(0, i);
-        return result;
+    public NameValuePair getQueryParam(String name) {
+        return getQueryParams().stream()
+                .filter(param -> param.getName().equalsIgnoreCase(name))
+                .findFirst().orElse(new NameValuePair() {
+                    @Override
+                    public String getName() {
+                        return null;
+                    }
+
+                    @Override
+                    public String getValue() {
+                        return null;
+                    }
+                });
     }
 
     private static int indexOf(byte[] array, byte[] target, int start, int max) {
